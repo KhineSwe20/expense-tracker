@@ -5,9 +5,9 @@ import { API_BASE_URL } from '../config';
 const TOKEN_KEY = 'auth_token';
 
 export const api = axios.create({
-  baseURL: "http://192.168.100.6:8080/api",
+  baseURL: "https://expense-tracker-ej2p.onrender.com/api",
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000,
+  timeout: 30000,
 });
 
 api.interceptors.request.use(async (config) => {

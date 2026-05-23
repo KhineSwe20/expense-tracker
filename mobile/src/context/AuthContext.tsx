@@ -45,10 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user);
   }, []);
 
-  const register = useCallback(async (data: RegisterRequest) => {
-    const response = await authService.register(data);
-    setUser(response.user);
-  }, []);
+ const register = useCallback(async (data: RegisterRequest) => {
+  const response = await authService.register(data);
+  setUser(response.user);
+}, []);
 
   const logout = useCallback(async () => {
     await authService.logout();

@@ -1,0 +1,21 @@
+You are helping build a Couple Expense Tracker app.
+
+Tech stack:
+- Java Spring Boot
+- MySQL
+- REST API
+- JWT Authentication
+
+Architecture:
+- controller
+- service
+- repository
+- entity
+- dto
+
+Rules:
+- Keep code clean and beginner friendly
+- Use DTOs
+- Use constructor injection
+- Keep controllers thin
+- Use meaningful method names

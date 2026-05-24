@@ -9,7 +9,7 @@ import com.expense.tracker.entity.User;
 import com.expense.tracker.repository.CoupleRepository;
 import com.expense.tracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,26 +20,16 @@ import java.util.UUID;
 public class AuthService {
     private final UserRepository userRepository;
     private final CoupleRepository coupleRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        String email = request.getEmail().trim().toLowerCase();
+        String email = normalizeEmail(request.getEmail());
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        Couple couple;
-        if (request.getInviteCode() != null && !request.getInviteCode().isBlank()) {
-            couple = coupleRepository.findByInviteCode(request.getInviteCode().trim().toUpperCase())
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid invite code"));
-            if (userRepository.countByCoupleId(couple.getId()) >= 2) {
-                throw new IllegalArgumentException("This couple already has two members");
-            }
-        } else {
-            couple = Couple.builder().inviteCode(generateInviteCode()).build();
-            couple = coupleRepository.save(couple);
-        }
+        Couple couple = resolveCouple(request.getInviteCode());
 
         User user = User.builder()
                 .name(request.getName().trim())
@@ -47,20 +37,24 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .couple(couple)
                 .build();
-        user = userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        return new AuthResponse(createToken(user), UserResponse.from(user));
+        return AuthResponse.of(createToken(savedUser), UserResponse.from(savedUser));
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
+        User user = userRepository.findByEmail(normalizeEmail(request.getEmail()))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        return new AuthResponse(createToken(user), UserResponse.from(user));
+        return AuthResponse.of(createToken(user), UserResponse.from(user));
+    }
+
+    public UserResponse me(String authorization) {
+        return UserResponse.from(getUserFromAuthorization(authorization));
     }
 
     public User getUserFromAuthorization(String authorization) {
@@ -69,18 +63,32 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    public UserResponse me(String authorization) {
-        return UserResponse.from(getUserFromAuthorization(authorization));
+    private Couple resolveCouple(String inviteCode) {
+        if (inviteCode == null || inviteCode.isBlank()) {
+            return coupleRepository.save(Couple.builder().inviteCode(generateInviteCode()).build());
+        }
+
+        Couple couple = coupleRepository.findByInviteCode(inviteCode.trim().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid invite code"));
+
+        if (userRepository.countByCoupleId(couple.getId()) >= 2) {
+            throw new IllegalArgumentException("This couple already has two members");
+        }
+        return couple;
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
     }
 
     private String createToken(User user) {
-        // Simple token for MVP. Later replace with real JWT.
+        // MVP token. It is simple and easy to debug. Later, replace with real JWT.
         return "user-" + user.getId();
     }
 
     private Long parseUserIdFromAuthorization(String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer user-")) {
-            throw new IllegalArgumentException("Missing or invalid token");
+            throw new IllegalArgumentException("Missing or invalid token. Please login again.");
         }
         return Long.parseLong(authorization.replace("Bearer user-", "").trim());
     }

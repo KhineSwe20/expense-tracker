@@ -2,9 +2,11 @@ package com.expense.tracker.dto.response.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor
+@AllArgsConstructor(staticName = "of")
 public class AuthResponse {
     private String token;
     private UserResponse user;

@@ -26,18 +26,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     (async () => {
-      const token = await getAuthToken();
-      if (token) {
-        try {
-          const { data } = await api.get<User>('/auth/me');
-          setUser(data);
-        } catch {
-          await authService.logout();
-        }
+      try {
+        const token = await getAuthToken();
+        if (!token) return;
+
+        const { data } = await api.get<User>('/auth/me');
+        if (mounted) setUser(data);
+      } catch {
+        await authService.logout();
+        if (mounted) setUser(null);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-      setIsLoading(false);
     })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const login = useCallback(async (data: LoginRequest) => {
@@ -45,10 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user);
   }, []);
 
- const register = useCallback(async (data: RegisterRequest) => {
-  const response = await authService.register(data);
-  setUser(response.user);
-}, []);
+  const register = useCallback(async (data: RegisterRequest) => {
+    const response = await authService.register(data);
+    setUser(response.user);
+  }, []);
 
   const logout = useCallback(async () => {
     await authService.logout();

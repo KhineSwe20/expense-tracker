@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../config';
 const TOKEN_KEY = 'auth_token';
 
 export const api = axios.create({
-  baseURL: "https://expense-tracker-ej2p.onrender.com/api",
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
@@ -33,9 +33,9 @@ api.interceptors.response.use(
 export async function setAuthToken(token: string | null): Promise<void> {
   if (token) {
     await AsyncStorage.setItem(TOKEN_KEY, token);
-  } else {
-    await AsyncStorage.removeItem(TOKEN_KEY);
+    return;
   }
+  await AsyncStorage.removeItem(TOKEN_KEY);
 }
 
 export async function getAuthToken(): Promise<string | null> {

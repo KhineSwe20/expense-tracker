@@ -24,9 +24,7 @@ export function RegisterScreen({ navigation }: Props) {
       Alert.alert('Validation', 'Please fill in name, email, and password.');
       return;
     }
-    
-    Alert.alert('Debug', 'Create account clicked');
-    
+
     setLoading(true);
     try {
       await register({
@@ -35,6 +33,7 @@ export function RegisterScreen({ navigation }: Props) {
         password,
         inviteCode: inviteCode.trim() || undefined,
       });
+      Alert.alert('Success', 'Account created successfully.');
     } catch (error) {
       Alert.alert(
         'Registration failed',
